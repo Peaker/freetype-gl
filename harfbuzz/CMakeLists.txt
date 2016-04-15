@@ -40,7 +40,7 @@ macro(CREATE_DEMO _target _sources)
     target_link_libraries(${_target}
         freetype-gl-hb
         ${OPENGL_LIBRARY}
-        ${GLFW3_LIBRARY}
+        ${GLFW_STATIC_LIBRARIES}
         ${FREETYPE_LIBRARIES}
         ${HARFBUZZ_LIBRARIES}
      )
@@ -53,11 +53,11 @@ macro(CREATE_DEMO _target _sources)
     endif()
 endmacro()
 
-find_package(glfw3 REQUIRED)
-find_package(HarfBuzz REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
+pkg_search_module(HARFBUZZ REQUIRED harfbuzz)
 
 include_directories(
-    ${GLFW3_INCLUDE_DIR}
+    ${GLFW_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
 )
 
@@ -93,7 +93,7 @@ add_library(freetype-gl-hb STATIC
     ${FREETYPE_GL_HB_HDR}
 )
 
-create_demo(harfbuzz demo-harfbuzz.c)
+create_demo(demo-harfbuzz demo-harfbuzz.c)
 create_demo(hb-texture demo-texture.c)
 
 # Copy font and shaders into build directory for in-place testing
