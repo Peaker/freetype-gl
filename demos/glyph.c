@@ -121,10 +121,10 @@ void init( void )
 
     vec2 pen, origin;
 
-    texture_glyph_t *glyph  = texture_font_get_glyph( big, "g" );
+    texture_glyph_t *glyph  = texture_font_get_glyph( big, "A" );
     origin.x = width/2  - glyph->offset_x - glyph->width/2;
     origin.y = height/2 - glyph->offset_y + glyph->height/2;
-    add_text( text_buffer, big, "g", &black, &origin );
+    add_text( text_buffer, big, "A", &black, &origin );
     texture_atlas_upload( big->atlas );
 
     // title

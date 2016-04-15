@@ -39,9 +39,10 @@ macro(CREATE_DEMO _target _sources)
     endif()
     target_link_libraries(${_target}
         freetype-gl
+        ${GLFW_STATIC_LIBRARIES}
         ${OPENGL_LIBRARY}
-        ${GLFW3_LIBRARY}
         ${FREETYPE_LIBRARIES}
+        Xi
     )
     if(MATH_LIBRARY)
         target_link_libraries(${_target} ${MATH_LIBRARY})
@@ -61,19 +62,21 @@ if(WIN32 OR WIN64)
 endif()
 
 # Find dependencies
-find_package(glfw3 REQUIRED)
+find_package(Threads)
 find_package(AntTweakBar)
 find_package(FontConfig)
+pkg_search_module(GLFW REQUIRED glfw3)
 
 include_directories(
-    ${GLFW3_INCLUDE_DIR}
-    ${ANT_TWEAK_BAR_INCLUDE_PATH}
+    ${GLFW_INCLUDE_DIRS}
     ${FONTCONFIG_INCLUDE_DIR}
 )
 
-link_directories(
-    ${GLFW3_LIBRARY_DIR}
-)
+if(ANT_TWEAK_BAR_FOUND)
+    include_directories(
+      ${ANT_TWEAK_BAR_INCLUDE_PATH}
+    )
+endif()
 
 add_custom_command(
     DEPENDS

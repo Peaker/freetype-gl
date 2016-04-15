@@ -62,7 +62,7 @@ include_directories(
 )
 
 link_directories(
-    ${GLFW3_LIBRARY_DIR}
+    ${GLFW_LIBRARIES}
 )
 
 set(FREETYPE_GL_HB_HDR
