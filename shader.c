@@ -55,9 +55,15 @@ shader_read( const char *filename )
     size = ftell( file );
     fseek(file, 0, SEEK_SET );
     buffer = (char *) malloc( (size+1) * sizeof( char *) );
-    fread( buffer, sizeof(char), size, file );
-    buffer[size] = 0;
+    size_t read_bytes = fread( buffer, sizeof(char), size, file );
     fclose( file );
+
+    if (read_bytes < size) {
+        fprintf( stderr, "Unable to read file \"%s\".\n", filename );
+        return 0;
+    }
+
+    buffer[size] = 0;
     return buffer;
 }
 
