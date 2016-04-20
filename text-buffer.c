@@ -123,6 +123,8 @@ text_buffer_clear( text_buffer_t * self )
 void
 text_buffer_render( text_buffer_t * self )
 {
+    texture_atlas_upload_if_needed( self->manager->atlas );
+
     glEnable( GL_BLEND );
 
     glActiveTexture( GL_TEXTURE0 );

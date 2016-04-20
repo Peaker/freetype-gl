@@ -136,6 +136,10 @@ typedef struct texture_atlas_t
      */
     unsigned char * data;
 
+    /**
+     * Changed since last upload
+     */
+    int p_needs_upload;
 } texture_atlas_t;
 
 
@@ -173,6 +177,15 @@ typedef struct texture_atlas_t
  */
   void
   texture_atlas_upload( texture_atlas_t * self );
+
+/**
+ *  Upload atlas to video memory, if needed.
+ *
+ *  @param self a texture atlas structure
+ *
+ */
+  void
+  texture_atlas_upload_if_needed( texture_atlas_t * self );
 
 
 /**
