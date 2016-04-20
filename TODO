@@ -1,5 +1,6 @@
 TODO
 ====
+- Add error code for out of atlas space in text_buffer_add_text
 - Fix memory leaks in demo-atb-agg
 - To implement a generic hash table to speed up glyph and kerning access
 - To add a small markup parser
