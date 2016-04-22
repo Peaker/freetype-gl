@@ -53,6 +53,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  */
+#include "edtaa3func.h"
 
 /*
  * Compute the local gradient at edge pixels using convolution filters.
