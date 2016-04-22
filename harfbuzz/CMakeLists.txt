@@ -82,6 +82,8 @@ set(FREETYPE_GL_HB_SRC
     mat4.c
     shader.c
     texture-atlas.c
+    distance-field.c
+    edtaa3func.c
     texture-font.c
     vector.c
     vertex-attribute.c

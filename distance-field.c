@@ -95,28 +95,35 @@ make_distance_mapd( double *data, unsigned int width, unsigned int height )
 }
 
 unsigned char *
-make_distance_mapb( unsigned char *img,
-                    unsigned int width, unsigned int height )
+make_distance_mapb( const unsigned char *img,
+                    unsigned int width, unsigned int height,
+                    unsigned int stride )
 {
     double * data    = (double *) calloc( width * height, sizeof(double) );
     unsigned char *out = (unsigned char *) malloc( width * height * sizeof(unsigned char) );
-    unsigned int i;
+    unsigned int y;
 
     // find minimimum and maximum values
     double img_min = DBL_MAX;
     double img_max = DBL_MIN;
 
-    for( i=0; i<width*height; ++i)
+    for( y=0; y<height; ++y)
     {
-        double v = img[i];
-        data[i] = v;
-        if (v > img_max)
-            img_max = v;
-        if (v < img_min)
-            img_min = v;
+        double *out_line = data + y*width;
+        const unsigned char *in_line = img + y*stride;
+        unsigned int x;
+        for( x=0; x<width; x++) {
+            double v = in_line[x];
+            out_line[x] = v;
+            if (v > img_max)
+                img_max = v;
+            if (v < img_min)
+                img_min = v;
+        }
     }
 
     // Map values from 0 - 255 to 0.0 - 1.0
+    unsigned int i;
     for( i=0; i<width*height; ++i)
         data[i] = (img[i]-img_min)/img_max;
 

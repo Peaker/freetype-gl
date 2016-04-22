@@ -38,7 +38,13 @@
 #include <limits.h>
 #include "opengl.h"
 #include "texture-atlas.h"
+#include "distance-field.h"
 
+#if defined(GL_ES_VERSION_2_0) || defined(GL_ES_VERSION_3_0)
+#define DEPTH1_TEX_IMAGE_FORMAT GL_LUMINANCE
+#else
+#define DEPTH1_TEX_IMAGE_FORMAT GL_RED
+#endif
 
 // ------------------------------------------------------ texture_atlas_new ---
 texture_atlas_t *
@@ -65,6 +71,7 @@ texture_atlas_new( const size_t width,
     self->height = height;
     self->depth = depth;
     self->id = 0;
+    self->p_distance_field = 0;
     /* false until we have useful glpyhs in the atlas: */
     self->p_needs_upload = 0;
 
@@ -124,11 +131,24 @@ texture_atlas_set_region( texture_atlas_t * self,
     assert( (y + height) <= (self->height-1));
 
     depth = self->depth;
+    const unsigned char *datap;
+    unsigned int datap_stride;
+    if( self->p_distance_field ) {
+        assert( depth == 1 );
+        datap = make_distance_mapb( data, width, height, stride );
+        datap_stride = width;
+    } else {
+        datap = data;
+        datap_stride = stride;
+    }
     charsize = sizeof(char);
     for( i=0; i<height; ++i )
     {
         memcpy( self->data+((y+i)*self->width + x ) * charsize * depth,
-                data + (i*stride) * charsize, width * charsize * depth  );
+                datap + (i*datap_stride) * charsize, width * charsize * depth  );
+    }
+    if( self->p_distance_field ) {
+        free( (char *)datap );
     }
     self->p_needs_upload = 1;
 }
@@ -341,13 +361,10 @@ texture_atlas_upload( texture_atlas_t * self )
     }
     else
     {
-#if defined(GL_ES_VERSION_2_0) || defined(GL_ES_VERSION_3_0)
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_LUMINANCE, self->width, self->height,
-                      0, GL_LUMINANCE, GL_UNSIGNED_BYTE, self->data );
-#else
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RED, self->width, self->height,
-                     0, GL_RED, GL_UNSIGNED_BYTE, self->data );
-#endif
+        assert( self->depth == 1 );
+        glTexImage2D( GL_TEXTURE_2D, 0, DEPTH1_TEX_IMAGE_FORMAT,
+                      self->width, self->height, 0,
+                      DEPTH1_TEX_IMAGE_FORMAT, GL_UNSIGNED_BYTE, self->data );
     }
 }
 

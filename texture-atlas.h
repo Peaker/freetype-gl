@@ -140,6 +140,11 @@ typedef struct texture_atlas_t
      * Changed since last upload
      */
     int p_needs_upload;
+
+    /**
+     * Distance field mode is enabled
+     */
+    int p_distance_field;
 } texture_atlas_t;
 
 
