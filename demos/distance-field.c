@@ -35,7 +35,6 @@
 #include <string.h>
 
 #include "freetype-gl.h"
-#include "distance-field.h"
 #include "vertex-buffer.h"
 #include "text-buffer.h"
 #include "markup.h"
@@ -85,16 +84,11 @@ void init( void )
                          "`abcdefghijklmnopqrstuvwxyz{|}~";
 
     atlas = texture_atlas_new( 512, 512, 1 );
+    atlas->p_distance_field = 1;
     font = texture_font_new_from_file( atlas, 72, filename );
     texture_font_load_glyphs( font, cache );
     texture_font_delete( font );
 
-    fprintf( stderr, "Generating distance map...\n" );
-    map = make_distance_mapb(atlas->data, atlas->width, atlas->height);
-    fprintf( stderr, "done !\n");
-
-    memcpy( atlas->data, map, atlas->width*atlas->height*sizeof(unsigned char) );
-    free(map);
     texture_atlas_upload( atlas );
 
     GLuint indices[6] = {0,1,2, 0,2,3};

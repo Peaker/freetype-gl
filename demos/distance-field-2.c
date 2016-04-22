@@ -36,7 +36,6 @@
 #include <string.h>
 
 #include "freetype-gl.h"
-#include "distance-field.h"
 #include "vertex-buffer.h"
 #include "text-buffer.h"
 #include "markup.h"
@@ -126,6 +125,7 @@ void init( void )
     vec2 pen = {{0,0}};
     vec4 black = {{1,1,1,1}};
     font = texture_font_new_from_file( atlas, 48, filename );
+    font->atlas->p_distance_field = 1;
     vec4 bbox = add_text( buffer, font, text, &black, &pen );
     texture_atlas_upload( font->atlas );
     size_t i;
@@ -137,16 +137,6 @@ void init( void )
         vertex->y -= (int)(bbox.y + bbox.height/2);
     }
 
-
-    glBindTexture( GL_TEXTURE_2D, atlas->id );
-
-    fprintf( stderr, "Generating distance map...\n" );
-    unsigned char *map = make_distance_mapb(atlas->data, atlas->width, atlas->height);
-    fprintf( stderr, "done !\n");
-
-    memcpy( atlas->data, map, atlas->width*atlas->height*sizeof(unsigned char) );
-    free(map);
-    texture_atlas_upload( atlas );
 
     shader = shader_load( "shaders/distance-field.vert",
                           "shaders/distance-field-2.frag" );
