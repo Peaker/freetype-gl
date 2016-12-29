@@ -32,7 +32,7 @@ font_manager_t * font_manager;
 text_buffer_t *text_buffer;
 vertex_buffer_t *buffer;
 GLuint bounds_shader;
-GLuint text_shader;
+GLuint text_shaders[2];
 mat4 model, view, projection;
 
 void init()
@@ -45,8 +45,10 @@ void init()
     GLuint indices[4*3] = { 0,1,2,3, };
     vertex_buffer_push_back( buffer, vertices, 4, indices, 4 );
 
-    text_shader = shader_load( "shaders/text.vert",
-                               "shaders/text.frag" );
+    text_shaders[0] = shader_load( "shaders/text.vert",
+                                   "shaders/twopass-a.frag" );
+    text_shaders[1] = shader_load( "shaders/text.vert",
+                                   "shaders/twopass-b.frag" );
 
     font_manager = font_manager_new( 512, 512, LCD_FILTERING_ON );
     text_buffer = text_buffer_new( );
@@ -99,6 +101,21 @@ void init()
     mat4_set_identity( &view );
 }
 
+void use_text_shader( GLuint text_shader )
+{
+    glUseProgram( text_shader );
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "model" ),
+                        1, 0, model.data);
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "view" ),
+                        1, 0, view.data);
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "projection" ),
+                        1, 0, projection.data);
+    glUniform1i( glGetUniformLocation( text_shader, "tex" ), 0 );
+    glUniform3f( glGetUniformLocation( text_shader, "pixel" ),
+                 1.0f/font_manager->atlas->width,
+                 1.0f/font_manager->atlas->height,
+                 (float)font_manager->atlas->depth );
+}
 
 // ---------------------------------------------------------------- display ---
 void display( GLFWwindow* window )
@@ -106,32 +123,21 @@ void display( GLFWwindow* window )
     glClearColor( 1.0, 1.0, 1.0, 1.0 );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    glUseProgram( text_shader );
+    glEnable( GL_BLEND );
+    glActiveTexture( GL_TEXTURE0 );
+    glBindTexture( GL_TEXTURE_2D, font_manager->atlas->id );
     {
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "model" ),
-                            1, 0, model.data);
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "view" ),
-                            1, 0, view.data);
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "projection" ),
-                            1, 0, projection.data);
-        glUniform1i( glGetUniformLocation( text_shader, "tex" ), 0 );
-        glUniform3f( glGetUniformLocation( text_shader, "pixel" ),
-                     1.0f/font_manager->atlas->width,
-                     1.0f/font_manager->atlas->height,
-                     (float)font_manager->atlas->depth );
-
-        glEnable( GL_BLEND );
-
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, font_manager->atlas->id );
-
-        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
+        glBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );
+        use_text_shader( text_shaders[0] );
         vertex_buffer_render( text_buffer->buffer, GL_TRIANGLES );
-        glBindTexture( GL_TEXTURE_2D, 0 );
-        glUseProgram( 0 );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+        use_text_shader( text_shaders[1] );
+        vertex_buffer_render( text_buffer->buffer, GL_TRIANGLES );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ); // default
     }
-    glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );
+    glBindTexture( GL_TEXTURE_2D, 0 );
+    glUseProgram( 0 );
+
     glUseProgram( bounds_shader );
     {
         glUniformMatrix4fv( glGetUniformLocation( bounds_shader, "model" ),
@@ -251,7 +257,8 @@ int main( int argc, char **argv )
     }
 
     glDeleteProgram( bounds_shader );
-    glDeleteProgram( text_shader );
+    glDeleteProgram( text_shaders[0] );
+    glDeleteProgram( text_shaders[1] );
     glDeleteTextures( 1, &font_manager->atlas->id );
     font_manager->atlas->id = 0;
     text_buffer_delete( text_buffer );

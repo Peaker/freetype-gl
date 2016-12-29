@@ -43,7 +43,7 @@ font_manager_t * font_manager_rgb;
 
 text_buffer_t * text_buffer;
 
-GLuint text_shader;
+GLuint normal_shader, twopass_shaders[2];
 
 mat4 model, view, projection;
 
@@ -51,6 +51,7 @@ font_family_e p_family;
 float p_size;
 int p_kerning;
 int p_hinting;
+int p_alt_shader;
 int p_lcd_filtering;
 float p_gamma;
 float p_interval;
@@ -402,13 +403,17 @@ void init( GLFWwindow* window )
 
     // Rendering
     TwAddVarCB(bar, "Kerning", TW_TYPE_BOOL32, set_int, get_int, &p_kerning,
-               "label = 'Kerning'   "
-               "group = 'Rendering' "
-               "help  = ' '         ");
+               "label = 'Kerning'    "
+               "group = 'Rendering'  "
+               "help  = ' '          ");
     TwAddVarCB(bar, "Hinting", TW_TYPE_BOOL32, set_int, get_int, &p_hinting,
-               "label = 'Hinting'   "
-               "group = 'Rendering' "
-               "help  = ' '         ");
+               "label = 'Hinting'    "
+               "group = 'Rendering'  "
+               "help  = ' '          ");
+    TwAddVarCB(bar, "Alt Shader", TW_TYPE_BOOL32, set_int, get_int, &p_alt_shader,
+               "label = 'Alt Shader' "
+               "group = 'Rendering'  "
+               "help  = ' '          ");
 
     // Color
     TwAddVarCB(bar, "Background Color", TW_TYPE_COLOR3F, set_color3f, get_color3f, &p_background_color,
@@ -497,8 +502,12 @@ void init( GLFWwindow* window )
     TwAddButton(bar, "Quit", (TwButtonCallback) quit, window,
                 "help='Quit.'");
 
-    text_shader = shader_load( "shaders/text.vert",
-                               "shaders/text.frag" );
+    normal_shader = shader_load( "shaders/text.vert",
+                                 "shaders/text.frag" );
+    twopass_shaders[0] = shader_load( "shaders/text.vert",
+                                      "shaders/twopass-a.frag" );
+    twopass_shaders[1] = shader_load( "shaders/text.vert",
+                                      "shaders/twopass-b.frag" );
 
     font_manager_a = font_manager_new( 512, 512, LCD_FILTERING_OFF );
     font_manager_rgb = font_manager_new( 512, 512, LCD_FILTERING_ON );
@@ -527,6 +536,21 @@ void init( GLFWwindow* window )
     mat4_set_identity( &view );
 }
 
+void use_text_shader( GLuint text_shader )
+{
+    glUseProgram( text_shader );
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "model" ),
+                        1, 0, model.data);
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "view" ),
+                        1, 0, view.data);
+    glUniformMatrix4fv( glGetUniformLocation( text_shader, "projection" ),
+                        1, 0, projection.data);
+    glUniform1i( glGetUniformLocation( text_shader, "tex" ), 0 );
+    glUniform3f( glGetUniformLocation( text_shader, "pixel" ),
+                 1.0f/font_manager->atlas->width,
+                 1.0f/font_manager->atlas->height,
+                 (float)font_manager->atlas->depth );
+}
 
 // ---------------------------------------------------------------- display ---
 void display( GLFWwindow* window )
@@ -534,31 +558,27 @@ void display( GLFWwindow* window )
     glClearColor( p_background_color.r, p_background_color.g, p_background_color.b, 1 );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    glUseProgram( text_shader );
+    glEnable( GL_BLEND );
+    glActiveTexture( GL_TEXTURE0 );
+    glBindTexture( GL_TEXTURE_2D, font_manager->atlas->id );
+    if ( !p_alt_shader || !p_lcd_filtering )
     {
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "model" ),
-                            1, 0, model.data);
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "view" ),
-                            1, 0, view.data);
-        glUniformMatrix4fv( glGetUniformLocation( text_shader, "projection" ),
-                            1, 0, projection.data);
-        glUniform1i( glGetUniformLocation( text_shader, "tex" ), 0 );
-        glUniform3f( glGetUniformLocation( text_shader, "pixel" ),
-                     1.0f/font_manager->atlas->width,
-                     1.0f/font_manager->atlas->height,
-                     (float)font_manager->atlas->depth );
-
-        glEnable( GL_BLEND );
-
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, font_manager->atlas->id );
-
         glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
+        use_text_shader( normal_shader );
         vertex_buffer_render( text_buffer->buffer, GL_TRIANGLES );
-        glBindTexture( GL_TEXTURE_2D, 0 );
-        glUseProgram( 0 );
     }
+    else
+    {
+        glBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );
+        use_text_shader( twopass_shaders[0] );
+        vertex_buffer_render( text_buffer->buffer, GL_TRIANGLES );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+        use_text_shader( twopass_shaders[1] );
+        vertex_buffer_render( text_buffer->buffer, GL_TRIANGLES );
+        glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA ); // default
+    }
+    glUseProgram( 0 );
+    glBindTexture( GL_TEXTURE_2D, 0 );
 
     TwDraw( );
     glfwSwapBuffers( window );
@@ -785,7 +805,9 @@ int main( int argc, char **argv )
 
     TwTerminate();
 
-    glDeleteProgram( text_shader );
+    glDeleteProgram( normal_shader );
+    glDeleteProgram( twopass_shaders[0] );
+    glDeleteProgram( twopass_shaders[1] );
     glDeleteTextures( 1, &font_manager_a->atlas->id );
     glDeleteTextures( 1, &font_manager_rgb->atlas->id );
     font_manager_a->atlas->id = 0;
