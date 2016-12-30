@@ -49,7 +49,6 @@ mat4 model, view, projection;
 
 font_family_e p_family;
 float p_size;
-int p_invert;
 int p_kerning;
 int p_hinting;
 int p_lcd_filtering;
@@ -62,6 +61,8 @@ float p_faux_italic;
 float p_primary;
 float p_secondary;
 float p_tertiary;
+vec4 p_foreground_color;
+vec4 p_background_color;
 
 static char text[] =
     "A single pixel on a color LCD is made of three colored elements \n"
@@ -87,14 +88,7 @@ build_buffer( void )
 {
     vec2 pen;
     texture_font_t *font;
-    vec4 black  = {{0.0, 0.0, 0.0, 1.0}};
-    vec4 white  = {{1.0, 1.0, 1.0, 1.0}};
     vec4 none   = {{1.0, 1.0, 1.0, 0.0}};
-    vec4 color = white;
-    if( p_invert )
-    {
-        color = black;
-    }
 
     markup_t markup = {
         .family  = "Source Sans Pro",
@@ -103,14 +97,14 @@ build_buffer( void )
         .italic  = 0,
         .spacing = p_interval,
         .gamma   = p_gamma,
-        .foreground_color    = color,
+        .foreground_color    = p_foreground_color,
         .background_color    = none,
         .underline           = 0,
-        .underline_color     = color,
+        .underline_color     = p_foreground_color,
         .overline            = 0,
-        .overline_color      = color,
+        .overline_color      = p_foreground_color,
         .strikethrough       = 0,
-        .strikethrough_color = color,
+        .strikethrough_color = p_foreground_color,
         .font = 0,
     };
 
@@ -219,7 +213,6 @@ void reset( void )
 {
     p_family    = VERA;
     p_size      = 12.0;
-    p_invert    = 0;
     p_kerning   = 1;
     p_hinting   = 1;
     p_lcd_filtering = 1;
@@ -229,6 +222,14 @@ void reset( void )
     p_width     = 1.0;
     p_faux_weight = 0.0;
     p_faux_italic = 0.0;
+    p_foreground_color.r = 1.0;
+    p_foreground_color.g = 1.0;
+    p_foreground_color.b = 1.0;
+    p_foreground_color.a = 1.0;
+    p_background_color.r = 0.0;
+    p_background_color.g = 0.0;
+    p_background_color.b = 0.0;
+    p_background_color.a = 1.0;
 
     // FT_LCD_FILTER_LIGHT
     p_primary   = 1.0/3.0;
@@ -291,6 +292,47 @@ void TW_CALL get_lcd_filtering( void *value, void *data )
     *(int *)value = p_lcd_filtering;
 }
 
+void TW_CALL set_color4f( const void *value, void *data )
+{
+    memcpy( data, value, 4*sizeof(float) );
+    build_buffer();
+}
+
+void TW_CALL get_color4f( void *value, void *data )
+{
+    memcpy( value, data, 4*sizeof(float) );
+}
+
+void TW_CALL set_color3f( const void *value, void *data )
+{
+    memcpy( data, value, 3*sizeof(float) );
+    build_buffer();
+}
+
+void TW_CALL get_color3f( void *value, void *data )
+{
+    memcpy( value, data, 3*sizeof(float) );
+}
+
+void TW_CALL switch_colors( void *data )
+{
+    vec4 tmp;
+    memcpy( &tmp, &p_foreground_color, sizeof(vec4) );
+    memcpy( &p_foreground_color, &p_background_color, sizeof(vec4) );
+    memcpy( &p_background_color, &tmp, sizeof(vec4) );
+    build_buffer();
+}
+
+void TW_CALL invert_colors( void *data )
+{
+    p_foreground_color.r = 1 - p_foreground_color.r;
+    p_foreground_color.g = 1 - p_foreground_color.g;
+    p_foreground_color.b = 1 - p_foreground_color.b;
+    p_background_color.r = 1 - p_background_color.r;
+    p_background_color.g = 1 - p_background_color.g;
+    p_background_color.b = 1 - p_background_color.b;
+    build_buffer();
+}
 
 // ------------------------------------------------------------------- init ---
 void init( GLFWwindow* window )
@@ -369,10 +411,23 @@ void init( GLFWwindow* window )
                "help  = ' '         ");
 
     // Color
-    TwAddVarCB(bar, "Invert", TW_TYPE_BOOL32, set_int, get_int, &p_invert,
-               "label = 'Invert' "
-               "group = 'Color'  "
-               "help  = ' '      ");
+    TwAddVarCB(bar, "Background Color", TW_TYPE_COLOR3F, set_color3f, get_color3f, &p_background_color,
+               "label = 'Background' "
+               "group = 'Color'      "
+               "help  = ' '          ");
+    TwAddVarCB(bar, "Foreground Color", TW_TYPE_COLOR4F, set_color4f, get_color4f, &p_foreground_color,
+               "label = 'Foreground' "
+               "group = 'Color'      "
+               "help  = ' '          ");
+
+    TwAddButton(bar, "Switch colors", (TwButtonCallback) switch_colors, NULL,
+                "label = 'Switch'                               "
+                "group = 'Color'                                "
+                "help='Switch foreground and background colors.'");
+    TwAddButton(bar, "Invert colors", (TwButtonCallback) invert_colors, NULL,
+                "label = 'Invert'                               "
+                "group = 'Color'                                "
+                "help='Switch foreground and background colors.'");
 
     // Glyph
     TwAddVarCB(bar, "Width", TW_TYPE_FLOAT, set_float, get_float, &p_width,
@@ -476,14 +531,7 @@ void init( GLFWwindow* window )
 // ---------------------------------------------------------------- display ---
 void display( GLFWwindow* window )
 {
-    if( !p_invert )
-    {
-        glClearColor( 0, 0, 0, 1 );
-    }
-    else
-    {
-        glClearColor( 1, 1, 1, 1 );
-    }
+    glClearColor( p_background_color.r, p_background_color.g, p_background_color.b, 1 );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     glUseProgram( text_shader );
