@@ -8,6 +8,11 @@
 /////////////////////////////////////////////////////
 // "twopass-a.frag" and "twopass-b.frag" should be linked with "text.vert".
 //
+// See description in section 6 of
+// https://fsrv.dyndns.org/mirrors/dmedia-tutorials-textrendering1/index.html
+// Note that if rendering single-color text, and GL supports gl_ext_blend_color,
+// you can use a single rendering pass as described in section 6.1
+//
 // The first pass: Occlusion
 // Use "twopass-a.frag" with "glBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );"
 // ( This works around OpenGL not allowing different alpha for each subpixel,
@@ -34,9 +39,9 @@ void main()
     current = pow(current, vec4(1.0/vgamma));
     previous= pow(previous, vec4(1.0/vgamma));
 
-    float r = current.r;
-    float g = current.g;
-    float b = current.b;
+    float r;
+    float g;
+    float b;
 
     if( vshift <= 0.333 )
     {
