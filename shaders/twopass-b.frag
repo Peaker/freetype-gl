@@ -22,9 +22,9 @@ void main()
     current = pow(current, vec4(1.0/vgamma));
     previous= pow(previous, vec4(1.0/vgamma));
 
-    float r = current.r;
-    float g = current.g;
-    float b = current.b;
+    float r;
+    float g;
+    float b;
 
     if( vshift <= 0.333 )
     {
