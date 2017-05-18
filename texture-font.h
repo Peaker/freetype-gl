@@ -321,6 +321,8 @@ typedef struct texture_font_t
      */
     float underline_thickness;
 
+    FT_Library library;
+    FT_Face face;
 } texture_font_t;
 
 
