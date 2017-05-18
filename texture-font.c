@@ -3,8 +3,7 @@
  * Distributed under the OSI-approved BSD 2-Clause License.  See accompanying
  * file `LICENSE` for more details.
  */
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#include "texture-font.h"
 #include FT_STROKER_H
 // #include FT_ADVANCES_H
 #include FT_LCD_FILTER_H
@@ -14,7 +13,6 @@
 #include <assert.h>
 #include <math.h>
 #include "distance-field.h"
-#include "texture-font.h"
 #include "platform.h"
 #include "utf8-utils.h"
 

@@ -6,6 +6,9 @@
 #ifndef __TEXTURE_FONT_H__
 #define __TEXTURE_FONT_H__
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <stdlib.h>
 #include <stdint.h>
 
