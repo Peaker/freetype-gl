@@ -82,8 +82,10 @@ texture_font_load_face(texture_font_t *self)
 
 cleanup_face:
     FT_Done_Face( self->face );
+    self->face = NULL;
 cleanup_library:
     FT_Done_FreeType( self->library );
+    self->library = NULL;
 cleanup:
     return 0;
 }
